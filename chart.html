@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+</head>
+<body>
+  <h1 id="title">Downloads over time</h1>
+
+  <select id="uniPicker"></select>
+
+  <div id="myChart" style="width: 800px; height: 400px;"></div>
+
+  <script>
+    const chart = echarts.init(document.getElementById("myChart"));
+
+    function loadChart(code) {
+      document.getElementById("title").innerText = code + " downloads over time";
+
+      fetch("http://127.0.0.1:8000/universities/" + code + "/downloads")
+        .then(response => response.json())
+        .then(data => {
+          const labels = data.map(row => row.date);
+          const values = data.map(row => row.downloads);
+
+          chart.setOption({
+            xAxis: { type: "category", data: labels },
+            yAxis: { type: "value" },
+            series: [{ data: values, type: "line" }]
+          });
+        });
+    }
+
+    fetch("http://127.0.0.1:8000/universities")
+      .then(response => response.json())
+      .then(universities => {
+        const picker = document.getElementById("uniPicker");
+
+        universities.forEach(code => {
+          const option = document.createElement("option");
+          option.value = code;
+          option.textContent = code;
+          picker.appendChild(option);
+        });
+
+        picker.addEventListener("change", () => loadChart(picker.value));
+
+        loadChart(universities[0]);
+      });
+  </script>
+</body>
+</html>
