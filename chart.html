@@ -16,7 +16,9 @@
     function loadChart(code) {
       document.getElementById("title").innerText = code + " downloads over time";
 
-      fetch("http://127.0.0.1:8000/universities/" + code + "/downloads")
+      fetch("http://127.0.0.1:8000/universities/" + code + "/downloads", {
+        headers: { "X-Admin-Key": "dev-admin-key-change-this-later" }
+      })
         .then(response => response.json())
         .then(data => {
           const labels = data.map(row => row.date);
