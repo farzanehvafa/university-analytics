@@ -5,6 +5,8 @@ from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import bcrypt
+import os
+from dotenv import load_dotenv
 
 app = FastAPI()
 
@@ -15,8 +17,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-ADMIN_KEY = "dev-admin-key-change-this-later"
-SECRET_KEY = "dev-secret-change-this-later"
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+ADMIN_KEY = os.getenv("ADMIN_KEY")
 ALGORITHM = "HS256"
 
 
