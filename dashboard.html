@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+  <style>
+    body { font-family: sans-serif; max-width: 900px; margin: 40px auto; }
+    #login-box { max-width: 300px; }
+    #login-box input { display: block; width: 100%; margin-bottom: 10px; padding: 8px; }
+    #login-box button { padding: 8px 16px; }
+    #error { color: red; }
+    #dashboard { display: none; }
+    .chart { width: 100%; height: 350px; margin-bottom: 40px; }
+  </style>
+</head>
+<body>
+  <div id="login-box">
+    <h2>University Login</h2>
+    <input id="code" placeholder="University code (e.g. de_pum)">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="login()">Log in</button>
+    <p id="error"></p>
+  </div>
+
+  <div id="dashboard">
+    <h2 id="welcome"></h2>
+    <button onclick="logout()">Log out</button>
+    <h3>Downloads over time</h3>
+    <div id="downloads-chart" class="chart"></div>
+    <h3>Screen views over time</h3>
+    <div id="screens-chart" class="chart"></div>
+    <div style="margin: 30px 0; padding: 15px; border: 1px solid #ccc;">
+        <h3>Build your own report</h3>
+        <select id="report-metric">
+            <option value="downloads">Downloads</option>
+            <option value="screen_views">Screen views</option>
+        </select>
+        <select id="report-groupby">
+            <option value="day">By day</option>
+            <option value="week">By week</option>
+            <option value="month">By month</option>
+        </select>
+        <input id="report-start" type="date">
+        <input id="report-end" type="date">
+        <button onclick="runReport()">Run report</button>
+        <div id="report-chart" class="chart"></div>
+    </div>
+  </div>
+
+  <script>
+  let token = null;
+
+  function login() {
+    const code = document.getElementById("code").value;
+    const password = document.getElementById("password").value;
+
+    fetch("http://127.0.0.1:8000/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ university_code: code, password: password })
+    })
+    .then(response => {
+      if (!response.ok) throw new Error("Login failed");
+      return response.json();
+    })
+    .then(data => {
+      token = data.access_token;
+      document.getElementById("login-box").style.display = "none";
+      document.getElementById("dashboard").style.display = "block";
+      document.getElementById("welcome").innerText = "Welcome, " + code;
+      loadDashboard();
+    })
+    .catch(() => {
+      document.getElementById("error").innerText = "Wrong university code or password.";
+    });
+  }
+
+  function logout() {
+    token = null;
+    document.getElementById("dashboard").style.display = "none";
+    document.getElementById("login-box").style.display = "block";
+    document.getElementById("password").value = "";
+    document.getElementById("error").innerText = "";
+  }
+
+  function loadDashboard() {
+    fetch("http://127.0.0.1:8000/my-downloads", {
+      headers: { "Authorization": "Bearer " + token }
+    })
+    .then(r => {
+      if (!r.ok) throw new Error("unauthorized");
+      return r.json();
+    })
+    .then(data => {
+      const chart = echarts.init(document.getElementById("downloads-chart"));
+      chart.setOption({
+        xAxis: { type: "category", data: data.map(d => d.date) },
+        yAxis: { type: "value" },
+        series: [{ data: data.map(d => d.downloads), type: "line" }]
+      });
+    })
+    .catch(() => handleSessionExpired());
+
+    fetch("http://127.0.0.1:8000/my-screen-views", {
+      headers: { "Authorization": "Bearer " + token }
+    })
+    .then(r => {
+      if (!r.ok) throw new Error("unauthorized");
+      return r.json();
+    })
+    .then(data => {
+      const chart = echarts.init(document.getElementById("screens-chart"));
+      chart.setOption({
+        xAxis: { type: "category", data: data.map(d => d.date) },
+        yAxis: { type: "value" },
+        series: [{ data: data.map(d => d.screen_views), type: "line" }]
+      });
+    })
+    .catch(() => handleSessionExpired());
+  }
+
+  function handleSessionExpired() {
+    token = null;
+    document.getElementById("dashboard").style.display = "none";
+    document.getElementById("login-box").style.display = "block";
+    document.getElementById("error").innerText = "Session expired — please log in again.";
+  }
+
+  function runReport() {
+  const metric = document.getElementById("report-metric").value;
+  const groupBy = document.getElementById("report-groupby").value;
+  const start = document.getElementById("report-start").value;
+  const end = document.getElementById("report-end").value;
+
+  fetch(`http://127.0.0.1:8000/my-report?metric=${metric}&group_by=${groupBy}&start=${start}&end=${end}`, {
+    headers: { "Authorization": "Bearer " + token }
+  })
+  .then(r => {
+    if (!r.ok) throw new Error("failed");
+    return r.json();
+  })
+  .then(data => {
+    const chart = echarts.init(document.getElementById("report-chart"));
+    chart.setOption({
+      xAxis: { type: "category", data: data.map(d => d.period) },
+      yAxis: { type: "value" },
+      series: [{ data: data.map(d => d.total), type: "bar" }]
+    });
+  })
+  .catch(() => handleSessionExpired());
+}
+</script>
+</body>
+</html>

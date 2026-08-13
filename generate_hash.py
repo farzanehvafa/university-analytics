@@ -1,5 +1,6 @@
 import bcrypt
+import sys
 
-password = b"pum-secret-123"
+password = sys.argv[1].encode()
 hashed = bcrypt.hashpw(password, bcrypt.gensalt())
-print(hashed)
+print(hashed.decode())
