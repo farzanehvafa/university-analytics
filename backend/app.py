@@ -68,6 +68,7 @@ def get_current_university(authorization: str = Header(...)):
     try:
         scheme, token = authorization.split()
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        print(payload)
         return payload["university_code"]
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid or missing token")

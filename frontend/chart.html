@@ -32,7 +32,11 @@
         });
     }
 
-    fetch("http://127.0.0.1:8000/universities")
+    fetch("http://127.0.0.1:8000/universities", {
+      headers: {
+        "Authorization": "Basic " + btoa("admin:change-this-password")
+      }
+    })
       .then(response => response.json())
       .then(universities => {
         const picker = document.getElementById("uniPicker");

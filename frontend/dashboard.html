@@ -7,6 +7,9 @@
     #login-box { max-width: 300px; }
     #login-box input { display: block; width: 100%; margin-bottom: 10px; padding: 8px; }
     #login-box button { padding: 8px 16px; }
+    .password-row { position: relative; }
+    .password-row input { padding-right: 60px; }
+    .password-row button { position: absolute; right: 4px; top: 4px; padding: 4px 8px; font-size: 12px; }
     #error { color: red; }
     #dashboard { display: none; }
     .chart { width: 100%; height: 350px; margin-bottom: 40px; }
@@ -16,7 +19,10 @@
   <div id="login-box">
     <h2>University Login</h2>
     <input id="code" placeholder="University code (e.g. de_pum)">
-    <input id="password" type="password" placeholder="Password">
+    <div class="password-row">
+      <input id="password" type="password" placeholder="Password">
+      <button type="button" id="togglePassword" onclick="togglePasswordVisibility()">Show</button>
+    </div>
     <button onclick="login()">Log in</button>
     <p id="error"></p>
   </div>
@@ -49,6 +55,14 @@
   <script>
   let token = null;
 
+  function togglePasswordVisibility() {
+    const passwordInput = document.getElementById("password");
+    const toggleButton = document.getElementById("togglePassword");
+    const isHidden = passwordInput.type === "password";
+    passwordInput.type = isHidden ? "text" : "password";
+    toggleButton.innerText = isHidden ? "Hide" : "Show";
+  }
+
   function login() {
     const code = document.getElementById("code").value;
     const password = document.getElementById("password").value;
@@ -64,10 +78,8 @@
     })
     .then(data => {
       token = data.access_token;
-      document.getElementById("login-box").style.display = "none";
-      document.getElementById("dashboard").style.display = "block";
-      document.getElementById("welcome").innerText = "Welcome, " + code;
-      loadDashboard();
+      localStorage.setItem("token", token);
+      showDashboard(code);
     })
     .catch(() => {
       document.getElementById("error").innerText = "Wrong university code or password.";
@@ -76,10 +88,23 @@
 
   function logout() {
     token = null;
+    localStorage.removeItem("token");
     document.getElementById("dashboard").style.display = "none";
     document.getElementById("login-box").style.display = "block";
     document.getElementById("password").value = "";
     document.getElementById("error").innerText = "";
+  }
+
+  function showDashboard(code) {
+    document.getElementById("login-box").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+    document.getElementById("welcome").innerText = "Welcome, " + code;
+    loadDashboard();
+  }
+
+  function decodeJwtUniversityCode(jwt) {
+    const payload = JSON.parse(atob(jwt.split(".")[1]));
+    return payload.university_code;
   }
 
   function loadDashboard() {
@@ -120,6 +145,7 @@
 
   function handleSessionExpired() {
     token = null;
+    localStorage.removeItem("token");
     document.getElementById("dashboard").style.display = "none";
     document.getElementById("login-box").style.display = "block";
     document.getElementById("error").innerText = "Session expired — please log in again.";
@@ -148,6 +174,13 @@
   })
   .catch(() => handleSessionExpired());
 }
+
+(function restoreSession() {
+  const savedToken = localStorage.getItem("token");
+  if (!savedToken) return;
+  token = savedToken;
+  showDashboard(decodeJwtUniversityCode(savedToken));
+})();
 </script>
 </body>
 </html>
