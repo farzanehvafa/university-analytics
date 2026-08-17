@@ -59,7 +59,7 @@ def login(request: LoginRequest):
 
     payload = {
         "university_code": request.university_code,
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+        "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return {"access_token": token}
